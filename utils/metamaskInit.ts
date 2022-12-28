@@ -13,6 +13,31 @@ type ConnectInfo = {
 //True if user is on mobile
 const mobile = isOnMobile()
 
+//Check account and chain id:
+const checkAccountAndChainId = (provider: any)=>{
+  provider.request({ method: 'eth_accounts' })
+  .then(async (accounts: string[])=>{
+    if(typeof accounts[0] !== 'undefined'){
+      console.log('you are connected with this account:',accounts[0])
+      }
+
+      //if there's an account then the user is connected to a specific chain
+      provider.request({ method: 'eth_chainId' }).then((e: any)=> console.log(e))
+  })
+}
+
+//Check it's not coinbase wallet provider:
+const checkCoinBase = ()=>{
+  let provider = window.ethereum;
+  // edge case if MM and CBW are both installed
+  if (window.ethereum.providers?.length) {
+    window.ethereum.providers.forEach(async (p: any) => {
+      if (p.isMetaMask) provider = p;
+    });
+  }
+  return provider
+}
+
 //Init Metamask API event listeners
 const eventListeners = (provider: any)=>{
     provider.on("accountsChanged", (accounts: string[]) => {
@@ -35,17 +60,20 @@ const eventListeners = (provider: any)=>{
         console.log('the provider is desconnected from blockchain, refresh the dapp and check your internet connection')
         console.error(err)
     });
+
+    // In case the user leaves the website to go to another website and changes the the settings
+    const windowFocus = ()=>{
+      checkAccountAndChainId(provider)
+    }
+    window.addEventListener('focus',windowFocus)
 }
 
 //Check if theres the provider, on mobile or needs to isntall metamask
 //If the user is in metamask mobile app browser it will need to wait around 3s for the ethereum provider to function*
 const checkMetamask = ()=>{
     if (typeof window != 'undefined'){
-        if(window.ethereum){
-
-            return true
-
-        }else if(mobile){
+        if(window.ethereum) return true
+        else if(mobile){
             console.log('deeplink?')
             return false
         }else{
@@ -58,41 +86,16 @@ const checkMetamask = ()=>{
 export const metamaskInit = ()=>{
     const start = checkMetamask()
     if (start){
-
-            //Check it's not coinbase wallet provider:
-            let provider = window.ethereum;
-            // edge case if MM and CBW are both installed
-            if (window.ethereum.providers?.length) {
-              window.ethereum.providers.forEach(async (p: any) => {
-                if (p.isMetaMask) provider = p;
-              });
-            }
-
-            provider.request({ method: 'eth_accounts' })
-            .then(async (accounts: string[])=>{
-              if(typeof accounts[0] !== 'undefined'){
-                console.log('you are connected with this account:',accounts[0])
-                }
-
-                //if there's an account then the user is connected to a specific chain
-                provider.request({ method: 'eth_chainId' }).then((e: any)=> console.log(e))
-            })
-
-            eventListeners(provider)
+      const provider = checkCoinBase()
+      checkAccountAndChainId(provider)
+      eventListeners(provider)
     }
 }
 
 export const connectToMetamask = ()=>{
     const start = checkMetamask()
     if(start){
-        //Check it's not coinbase wallet provider:
-        let provider = window.ethereum;
-        // edge case if MM and CBW are both installed
-        if (window.ethereum.providers?.length) {
-          window.ethereum.providers.forEach(async (p: any) => {
-            if (p.isMetaMask) provider = p;
-          });
-        }
+      const provider = checkCoinBase()
 
         provider
         .request({ method: 'eth_requestAccounts' })
