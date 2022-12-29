@@ -1,21 +1,21 @@
 import {isOnMobile } from './handleMobile'
 
 declare global{
-    interface Window {
-        ethereum?: any;
-      }
+  interface Window {
+    ethereum?: any;
+  }
 }
 
 type ConnectInfo = {
-    chainId: string
+  chainId: string
 }
 
 //debuggers
-const message = (msg: string)=>{
-  const el = document.getElementById('display')
-  if(el)
-  el.innerHTML = msg
-}
+// const message = (msg: string)=>{
+//   const el = document.getElementById('display')
+//   if(el)
+//   el.innerHTML = msg
+// }
 
 //True if user is on mobile
 const mobile = isOnMobile()
@@ -64,7 +64,6 @@ const eventListeners = (provider: any)=>{
 }
 
 //Check if theres the provider, on mobile or needs to isntall metamask
-//If the user is in metamask mobile app browser it will need to wait around 3s for the ethereum provider to function*
 const checkMetamask = ()=>{
     if (typeof window != 'undefined'){
         if(window.ethereum){
@@ -77,16 +76,14 @@ const checkMetamask = ()=>{
             });
           }
           eventListeners(provider)
-          message('provider metamask is installed')
+          console.log('provider metamask is installed')
           return provider
         }
         else if(mobile){
             console.log('deeplink?')
-            message('mobile')
             return false
         }else{
             console.log('install Metamask')
-            message('install metamask')
             return false
         }
     }
@@ -106,9 +103,7 @@ export const connectToMetamask = async ()=>{
         const requestConnection = async ()=>{
             await provider
             .request({ method: 'eth_requestAccounts' })
-            .then((e: any)=> {
-              message('connected')
-              console.log(e, 'you are now connected - get account / chain id')})
+            .then((e: any)=> console.log(e, 'you are now connected - get account / chain id'))
             .catch((err: any) => {
               if (err.code === 4001) {
                 // EIP-1193 userRejectedRequest error
@@ -116,7 +111,6 @@ export const connectToMetamask = async ()=>{
                 console.log('Please connect to MetaMask.');
               } else {
                 console.error(err);
-                message('failed to connect')
               }
             });
           }
@@ -127,7 +121,6 @@ export const connectToMetamask = async ()=>{
             method: 'wallet_switchEthereumChain',
             params: [{ chainId: '0x89' }],
           }).then(requestConnection).catch(async (er: any)=>{
-            message(er.code.toString())
             if(er.code === 4902 || er?.data?.originalError?.code == 4902){
               
                 await window.ethereum.request({
@@ -136,12 +129,19 @@ export const connectToMetamask = async ()=>{
                     {
                       chainId: '0x89',
                       chainName: 'Polygon',
+                      nativeCurrency: {
+                        name: 'MATIC',
+                        symbol: 'MATIC',
+                        decimals: 18,
+                      },
                       rpcUrls: ['https://polygon-rpc.com/'],
+                      blockExplorerUrls: ['https://polygonscan.com/'],
+                      iconUrls: [''], // Currently ignored by Metamask?.
                     },
                   ],
                 })
                 .then(requestConnection)
-                .catch((er: any)=>message(er.message.toString()))
+                .catch((er: any)=>console.error(er))
             }
           })
     }
