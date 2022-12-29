@@ -127,8 +127,8 @@ export const connectToMetamask = async ()=>{
             method: 'wallet_switchEthereumChain',
             params: [{ chainId: '0x89' }],
           }).then(requestConnection).catch(async (er: any)=>{
-            message(er.message.toString())
-            if(er.code === 4902){
+            message(er.code.toString())
+            if(er.code === 4902 || er?.data?.originalError?.code == 4902){
               
                 await window.ethereum.request({
                   method: 'wallet_addEthereumChain',
