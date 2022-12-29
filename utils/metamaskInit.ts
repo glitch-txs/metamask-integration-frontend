@@ -10,6 +10,13 @@ type ConnectInfo = {
     chainId: string
 }
 
+//debuggers
+const message = (msg: string)=>{
+  const el = document.getElementById('display')
+  if(el)
+  el.innerHTML = msg
+}
+
 //True if user is on mobile
 const mobile = isOnMobile()
 
@@ -70,13 +77,16 @@ const checkMetamask = ()=>{
             });
           }
           eventListeners(provider)
+          message('provider metamask is installed')
           return provider
         }
         else if(mobile){
             console.log('deeplink?')
+            message('mobile')
             return false
         }else{
             console.log('install Metamask')
+            message('install metamask')
             return false
         }
     }
@@ -96,7 +106,9 @@ export const connectToMetamask = async ()=>{
         const requestConnection = async ()=>{
             await provider
             .request({ method: 'eth_requestAccounts' })
-            .then((e: any)=> console.log(e, 'you are now connected - get account / chain id'))
+            .then((e: any)=> {
+              message('connected')
+              console.log(e, 'you are now connected - get account / chain id')})
             .catch((err: any) => {
               if (err.code === 4001) {
                 // EIP-1193 userRejectedRequest error
@@ -104,6 +116,7 @@ export const connectToMetamask = async ()=>{
                 console.log('Please connect to MetaMask.');
               } else {
                 console.error(err);
+                message('failed to connect')
               }
             });
           }
@@ -114,6 +127,7 @@ export const connectToMetamask = async ()=>{
             method: 'wallet_switchEthereumChain',
             params: [{ chainId: '0x89' }],
           }).then(requestConnection).catch(async (er: any)=>{
+            message(er.message.toString())
             if(er.code === 4902){
               
                 await window.ethereum.request({
@@ -127,7 +141,7 @@ export const connectToMetamask = async ()=>{
                   ],
                 })
                 .then(requestConnection)
-                .catch((er: any)=>console.log(er))
+                .catch((er: any)=>message(er.message.toString()))
             }
           })
     }
