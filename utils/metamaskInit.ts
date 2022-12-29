@@ -26,18 +26,6 @@ const checkAccountAndChainId = (provider: any)=>{
   })
 }
 
-//Check it's not coinbase wallet provider:
-const checkCoinBase = ()=>{
-  let provider = window.ethereum;
-  // edge case if MM and CBW are both installed
-  if (window.ethereum.providers?.length) {
-    window.ethereum.providers.forEach(async (p: any) => {
-      if (p.isMetaMask) provider = p;
-    });
-  }
-  return provider
-}
-
 //Init Metamask API event listeners
 const eventListeners = (provider: any)=>{
     provider.on("accountsChanged", (accounts: string[]) => {
@@ -72,7 +60,18 @@ const eventListeners = (provider: any)=>{
 //If the user is in metamask mobile app browser it will need to wait around 3s for the ethereum provider to function*
 const checkMetamask = ()=>{
     if (typeof window != 'undefined'){
-        if(window.ethereum) return true
+        if(window.ethereum){
+          //Check it's not coinbase wallet provider:
+          let provider = window.ethereum;
+          // edge case if MM and CBW are both installed
+          if (window.ethereum.providers?.length) {
+            window.ethereum.providers.forEach(async (p: any) => {
+              if (p.isMetaMask) provider = p;
+            });
+          }
+          eventListeners(provider)
+          return provider
+        }
         else if(mobile){
             console.log('deeplink?')
             return false
@@ -84,32 +83,52 @@ const checkMetamask = ()=>{
 }
 
 export const metamaskInit = ()=>{
-    const start = checkMetamask()
-    if (start){
-      const provider = checkCoinBase()
+    const provider = checkMetamask()
+    if (Boolean(provider)){
       checkAccountAndChainId(provider)
-      eventListeners(provider)
     }
 }
 
-export const connectToMetamask = ()=>{
-    const start = checkMetamask()
-    if(start){
-      const provider = checkCoinBase()
+export const connectToMetamask = async ()=>{
+    const provider = checkMetamask()
+    if(Boolean(provider)){
 
-        provider
-        .request({ method: 'eth_requestAccounts' })
-        .then((e: any)=> console.log(e, 'you are now connected - get account / chain id'))
-        .catch((err: any) => {
-          if (err.code === 4001) {
-            // EIP-1193 userRejectedRequest error
-            // If this happens, the user rejected the connection request.
-            console.log('Please connect to MetaMask.');
-          } else {
-            console.error(err);
+        const requestConnection = async ()=>{
+            await provider
+            .request({ method: 'eth_requestAccounts' })
+            .then((e: any)=> console.log(e, 'you are now connected - get account / chain id'))
+            .catch((err: any) => {
+              if (err.code === 4001) {
+                // EIP-1193 userRejectedRequest error
+                // If this happens, the user rejected the connection request.
+                console.log('Please connect to MetaMask.');
+              } else {
+                console.error(err);
+              }
+            });
           }
-        });
 
-        eventListeners(provider)
+          // metamask will ask firt to switch to the desired chain network, if user doesn't have the network it will
+          // add request to add it automatically, after the user is in the intended network it will ask him to connect.
+          await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: '0x89' }],
+          }).then(requestConnection).catch(async (er: any)=>{
+            if(er.code === 4902){
+              
+                await window.ethereum.request({
+                  method: 'wallet_addEthereumChain',
+                  params: [
+                    {
+                      chainId: '0x89',
+                      chainName: 'Polygon',
+                      rpcUrls: ['https://polygon-rpc.com/'],
+                    },
+                  ],
+                })
+                .then(requestConnection)
+                .catch((er: any)=>console.log(er))
+            }
+          })
     }
 }
