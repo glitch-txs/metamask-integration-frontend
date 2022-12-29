@@ -1,5 +1,6 @@
 import Head from 'next/head'
 import Connect from '../metamask/Connect'
+import Deeplink from '../metamask/Deeplink'
 import styles from '../styles/Home.module.css'
 
 export default function Home() {
@@ -13,6 +14,7 @@ export default function Home() {
       </Head>
       <div className={styles.main}>
         <Connect/>
+        <Deeplink/>
       </div>
     </>
   )
